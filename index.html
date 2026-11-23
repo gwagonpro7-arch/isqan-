@@ -1,4 +1,3 @@
-
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>بوابة الإسكان والأوقاف</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -385,7 +384,6 @@ textarea.inp { resize: vertical; min-height: 84px; }
       <a href="#housing" data-nav="housing" id="n-housing"></a>
       <a href="#land" data-nav="land" id="n-land"></a>
       <a href="#mosques" data-nav="mosques" id="n-mosques"></a>
-      <a href="#calc" data-nav="calc" id="n-calc"></a>
       <a href="#favs" data-nav="favs" id="n-favs"></a>
     </nav>
     <div class="side-foot">للتواصل المباشر اضغط على زر واتساب داخل كل عرض.</div>
@@ -455,6 +453,9 @@ const MOSQUES = [
 ];
 
 [[8000, 5200], [3500, 900], [2200, 1650], [12000, 4300]].forEach((v, i) => { MOSQUES[i].goal = v[0]; MOSQUES[i].raised = v[1]; });
+/* الأرض التابع لها كل مسجد (رقم الأرض من LANDS) */
+[1, 3, 4, 2].forEach((h, i) => { MOSQUES[i].land = h; });
+const landOf = m => LANDS.find(l => l.id === m.land);
 
 /* ============ أدوات ============ */
 const fmt = n => Number(n).toLocaleString("en-US");
@@ -482,12 +483,12 @@ const I = {
 const svg = (k, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k]}</svg>`;
 
 document.getElementById("brandmark").innerHTML = svg("housing", 22);
-[["home", "الرئيسية"], ["housing", "الإسكان"], ["land", "الأراضي والمبيعات"], ["mosques", "المساجد"], ["calc", "الحاسبة"], ["favs", "المفضلة"]]
+[["home", "الرئيسية"], ["housing", "الإسكان"], ["land", "الأراضي والمبيعات"], ["mosques", "المساجد"], ["favs", "المفضلة"]]
   .forEach(([k, t]) => { document.getElementById("n-" + k).innerHTML = svg(k, 20) + "<span>" + t + "</span>"; });
 document.getElementById("n-favs").insertAdjacentHTML("beforeend", '<em class="badge" id="favN" hidden>0</em>');
 
 /* ============ الحالة ============ */
-const S = { area: null, plot: null, filter: "الكل", mosque: null, loc: null, zoom: 0, pop: null, form: null, calc: { price: 31000, down: 20, years: 10, rate: 5 } };
+const S = { area: null, plot: null, filter: "الكل", mosque: null, loc: null, zoom: 0, pop: null, form: null };
 let FAVS = [];
 try { FAVS = JSON.parse(localStorage.getItem("bawaba-fav") || "[]"); if (!Array.isArray(FAVS)) FAVS = []; } catch (e) { FAVS = []; }
 const isFav = k => FAVS.indexOf(k) >= 0;
@@ -509,7 +510,6 @@ function pHome() {
     ["housing", "الإسكان", "تصفح مخططات الإسكان، شاهد الخريطة وأسعار القطع، وتواصل مع المسؤول عبر واتساب.", AREAS.length + " مخططات"],
     ["land", "الأراضي والمبيعات", "أراضٍ سكنية وتجارية وزراعية للبيع، مع المساحة والسعر وزر تواصل مباشر.", LANDS.length + " عروض"],
     ["mosques", "المساجد", "معلومات المساجد وأوقافها: أصول الوقف، العوائد، ومشاريع المساهمة.", mosqueList().length + " مساجد"],
-    ["calc", "الحاسبة", "احسب القسط الشهري لشراء أرض حسب الدفعة الأولى والمدة.", "جرّب الآن"],
     ["favs", "المفضلة", "الأراضي والقطع التي حفظتها لتعود إليها بسرعة.", FAVS.length + " محفوظ"]
   ];
   const stat = (ico, label, n) => `<div class="card stat"><div class="ico">${svg(ico)}</div><div><small>${label}</small><b data-count="${n}">${n}</b></div></div>`;
@@ -606,6 +606,7 @@ function pHousing() {
       <section class="card"><div class="card-title"><h2>الخدمات</h2></div>
         <div class="chips">${a.facilities.map(f => `<span class="pill info">${f}</span>`).join("")}</div>
       </section>
+      
     </div>
   </div>`;
 }
@@ -615,6 +616,7 @@ function landCard(l) {
   return `<article class="item">
     <div class="row"><h3>${l.title}</h3><span class="fav-row"><span class="pill info">${l.type}</span>${favBtn("land:" + l.id, "حفظ الأرض في المفضلة")}</span></div>
     <div class="muted">${l.loc}</div>
+    ${(() => { const ms = mosqueList().filter(m => m.land === l.id); return ms.length ? `<div><div class="note" style="margin-bottom:6px">المساجد التابعة لهذه الأرض</div><div class="chips">${ms.map(m => `<button class="locbtn" data-act="go-mosque" data-id="${esc(m.id)}"><span>${esc(m.name)}</span></button>`).join("")}</div></div>` : ""; })()}
     <dl class="kv"><dt>المساحة</dt><dd>${fmt(l.size)} م²</dd><dt>سعر المتر</dt><dd>${l.price ? (l.price / l.size).toFixed(1) + " ر.ع." : "عند التواصل"}</dd></dl>
     <div class="price">${l.price ? omr(l.price) : "<small>السعر عند التواصل</small>"}</div>
     <div class="btns">${waBtn(WA, msg, "تواصل عبر واتساب")}<button class="locbtn" data-act="loc" data-id="${l.id}">${svg("pin", 20)}<span>الموقع</span></button></div>
@@ -652,48 +654,6 @@ function pFavs() {
   return header("المفضلة", "مفضلتي") + body + (S.loc ? locModal(LANDS.find(x => x.id === S.loc)) : "");
 }
 
-const RING = 2 * Math.PI * 54;
-function calcOut() {
-  const c = S.calc, loan = c.price * (1 - c.down / 100), n = Math.max(1, c.years) * 12, r = c.rate / 100 / 12;
-  const m = r === 0 ? loan / n : loan * r / (1 - Math.pow(1 + r, -n));
-  const total = m * n;
-  return { loan, m, total, interest: total - loan, downAmt: c.price - loan };
-}
-function updateRing() {
-  const fg = document.getElementById("ringFg"); if (!fg) return;
-  const o = calcOut(), share = o.total > 0 ? o.loan / o.total : 1;
-  fg.style.strokeDasharray = (share * RING).toFixed(1) + " " + RING.toFixed(1);
-}
-function updateCalc() {
-  const o = calcOut();
-  [["cm", o.m], ["cl", o.loan], ["cd", o.downAmt], ["ci", o.interest], ["ct", o.total]].forEach(([id, v]) => { const el = document.getElementById(id); if (el) setNum(el, v, 450); });
-  updateRing();
-}
-function pCalc() {
-  const c = S.calc, o = calcOut(), priced = LANDS.filter(l => l.price);
-  const num = (id, v) => `<b id="${id}" data-count="${v}" data-suffix=" ر.ع.">${fmt(Math.round(v))} ر.ع.</b>`;
-  return header("الحاسبة", "حاسبة التمويل") + `
-  <div class="calc">
-    <section class="card">
-      <div class="card-title"><h2>بيانات الشراء</h2></div>
-      <div class="ctl"><label for="cPrice">سعر الأرض (ر.ع.)</label><input class="num" id="cPrice" type="number" inputmode="numeric" min="0" step="500" value="${c.price}" data-calc="price"></div>
-      <div class="ctl"><div class="row"><label for="cDown">الدفعة الأولى</label><span class="val"><span data-lab="down">${c.down}</span>%</span></div><input id="cDown" type="range" min="0" max="80" step="5" value="${c.down}" data-calc="down"></div>
-      <div class="ctl"><div class="row"><label for="cYears">مدة السداد</label><span class="val"><span data-lab="years">${c.years}</span> سنة</span></div><input id="cYears" type="range" min="1" max="25" step="1" value="${c.years}" data-calc="years"></div>
-      <div class="ctl"><div class="row"><label for="cRate">نسبة الربح السنوية</label><span class="val"><span data-lab="rate">${c.rate}</span>%</span></div><input id="cRate" type="range" min="0" max="10" step="0.25" value="${c.rate}" data-calc="rate"></div>
-      <div class="note">اختر سعرًا من الأراضي المعروضة:</div>
-      <div class="chips" style="margin-top:8px">${priced.map(l => `<button class="chip" data-act="calc-land" data-id="${l.id}">${l.title} · ${fmt(l.price)}</button>`).join("")}</div>
-    </section>
-    <section class="card">
-      <div class="card-title"><h2>القسط الشهري</h2></div>
-      <div class="ringwrap"><svg viewBox="0 0 140 140" width="200" height="200" aria-hidden="true"><circle class="ring-bg" cx="70" cy="70" r="54"/><circle id="ringFg" class="ring-fg" cx="70" cy="70" r="54" style="stroke-dasharray:0 ${RING.toFixed(1)}"/></svg>
-        <div class="ringc"><small>شهريًا</small>${num("cm", o.m)}</div></div>
-      <dl class="kv"><dt>مبلغ التمويل</dt><dd>${num("cl", o.loan)}</dd><dt>الدفعة الأولى</dt><dd>${num("cd", o.downAmt)}</dd><dt>إجمالي الأرباح</dt><dd>${num("ci", o.interest)}</dd><dt>إجمالي السداد</dt><dd>${num("ct", o.total)}</dd></dl>
-      <div class="legend"><span><i style="background:var(--accent)"></i>أصل المبلغ</span><span><i style="background:var(--warn)"></i>الأرباح</span></div>
-      <p class="note" style="margin:12px 0 0">تقدير تقريبي للتوضيح فقط، وليس عرضًا من بنك.</p>
-    </section>
-  </div>`;
-}
-
 /* ============ مساجد يضيفها الزوار ============ */
 let USER = null, DB = null, PROF = {}, INIT = false, USERM = [];
 const ME = { id: null, name: "", admin: false, canWrite: false };
@@ -710,7 +670,7 @@ function cleanM(id, d) {
   const s = (v, l) => String(v == null ? "" : v).slice(0, l);
   const assets = Array.isArray(d.assets) ? d.assets.slice(0, 8).map(r => Array.isArray(r) ? [s(r[0], 60), s(r[1], 20), n(r[2])] : null).filter(Boolean) : [];
   const photo = typeof d.photo === "string" && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(d.photo) ? d.photo : "";
-  return { id: s(id, 80), user: true, owner: s(d.owner, 64), name: s(d.name, 80), wilaya: s(d.wilaya, 40), year: n(d.year), cap: n(d.cap), area: n(d.area),
+  return { id: s(id, 80), user: true, owner: s(d.owner, 64), name: s(d.name, 80), wilaya: s(d.wilaya, 40), land: LANDS.some(l => l.id === +d.land) ? +d.land : 0, year: n(d.year), cap: n(d.cap), area: n(d.area),
     imam: s(d.imam, 60), waqf: s(d.waqf, 600), assets, needs: s(d.needs, 400), goal: n(d.goal), raised: n(d.raised),
     phone: String(d.phone || "").replace(/\D/g, "").slice(0, 15), photo, createdAt: s(d.createdAt, 30) };
 }
@@ -736,6 +696,7 @@ function pMosques() {
         ${m.photo ? `<img class="mphoto" src="${m.photo}" alt="صورة ${esc(m.name)}" loading="lazy">` : ""}
         <div class="row"><h3>${esc(m.name)}</h3><span class="fav-row">${m.user ? '<span class="pill ok">مضاف</span>' : ""}<span class="pill info">${esc(m.wilaya)}</span></span></div>
         <div class="muted">${m.cap ? "تتسع لـ " + fmt(m.cap) + " مصلٍّ" : "السعة غير مذكورة"}${m.year ? " · تأسس " + m.year : ""}</div>
+        ${landOf(m) ? `<div class="muted">تابع لـ ${esc(landOf(m).title)} - ${esc(landOf(m).loc)}</div>` : ""}
         <div class="row"><span class="muted">دخل الوقف السنوي</span><span class="price">${inc ? omr(inc) : "غير مذكور"}</span></div>
         ${m.goal ? `<div><div class="bar" aria-hidden="true"><i class="grow" style="width:${pct}%;background:var(--accent)"></i></div><div class="row note" style="margin-top:6px"><span>مشروع المسجد</span><span>${pct}%</span></div></div>` : ""}
       </button>`;
@@ -746,6 +707,7 @@ function pMosques() {
   const inc = sumInc(m), pct = pctOf(m), num = m.phone ? (/^\d{8}$/.test(m.phone) ? "968" + m.phone : m.phone) : WA;
   const msg = `السلام عليكم، أرغب بالاستفسار عن وقف ${m.name} في ${m.wilaya}.`;
   const give = `السلام عليكم، أرغب بالمساهمة في مشروع ${m.name}${m.needs ? ": " + m.needs : ""}`;
+  const ar = landOf(m);
   const by = m.user ? `<div class="note">أضافه ${esc((PROF[m.owner] && PROF[m.owner].name) || "زائر")}</div>` : "";
   return `<button class="back" data-act="back-mosque">${svg("back", 18)}<span>كل المساجد</span></button>` +
     header(m.wilaya, m.name) + `
@@ -753,7 +715,8 @@ function pMosques() {
     <div class="grid">
       ${m.photo ? `<section class="card"><img class="mphoto big" src="${m.photo}" alt="صورة ${esc(m.name)}">${by}</section>` : ""}
       <section class="card"><div class="card-title"><h2>معلومات المسجد</h2></div>
-        <dl class="kv"><dt>سنة التأسيس</dt><dd>${m.year || "غير مذكورة"}</dd><dt>السعة</dt><dd>${m.cap ? fmt(m.cap) + " مصلٍّ" : "غير مذكورة"}</dd><dt>المساحة</dt><dd>${dash(m.area, " م²")}</dd><dt>الإمام</dt><dd>${esc(m.imam) || "غير مذكور"}</dd></dl>
+        <dl class="kv"><dt>سنة التأسيس</dt><dd>${m.year || "غير مذكورة"}</dd><dt>السعة</dt><dd>${m.cap ? fmt(m.cap) + " مصلٍّ" : "غير مذكورة"}</dd><dt>المساحة</dt><dd>${dash(m.area, " م²")}</dd><dt>الإمام</dt><dd>${esc(m.imam) || "غير مذكور"}</dd><dt>الأرض التابع لها</dt><dd>${ar ? esc(ar.title) : "غير تابع لأرض"}</dd></dl>
+        ${ar ? `<button class="locbtn" data-act="open-land" data-id="${ar.id}" style="margin-top:14px"><span>عرض الأرض في قسم الأراضي</span></button>` : ""}
         ${m.photo ? "" : by}
       </section>
       <section class="card"><div class="card-title"><h2>وقف المسجد</h2></div>
@@ -799,6 +762,7 @@ function pMosqueForm() {
       <div class="two">${f("m_name", "اسم المسجد *", v.name || "", 'maxlength="80"')}${f("m_wilaya", "الولاية أو المنطقة *", v.wilaya || "", 'maxlength="40"')}</div>
       <div class="two">${nf("m_year", "سنة التأسيس", v.year, "مثال: 2005")}${nf("m_cap", "السعة (عدد المصلين)", v.cap, "مثال: 500")}</div>
       <div class="two">${nf("m_area", "المساحة (م²)", v.area, "مثال: 900")}${f("m_imam", "الإمام", v.imam || "", 'maxlength="60"')}</div>
+      <div class="ctl"><label for="m_land">تابع لأرض في قسم الأراضي</label><select class="inp" id="m_land"><option value="">غير تابع لأرض</option>${LANDS.map(l => `<option value="${l.id}" ${l.id === v.land ? "selected" : ""}>${l.title} - ${l.loc}</option>`).join("")}</select></div>
     </section>
     <section class="card">
       <div class="card-title"><h2>وقف المسجد</h2></div>
@@ -854,7 +818,7 @@ async function saveMosque() {
     r.querySelector('[data-r="n"]').value.trim().slice(0, 60), r.querySelector('[data-r="t"]').value,
     Math.max(0, Math.round(+r.querySelector('[data-r="i"]').value || 0))]).filter(a => a[0]);
   const now = new Date().toISOString(), id = m ? m.id : "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const rec = { owner: m ? m.owner : ME.id, name, wilaya, year, cap: nn("m_cap"), area: nn("m_area"), imam: g("m_imam").slice(0, 60), waqf: g("m_waqf").slice(0, 600),
+  const rec = { owner: m ? m.owner : ME.id, name, wilaya, year, cap: nn("m_cap"), area: nn("m_area"), imam: g("m_imam").slice(0, 60), land: LANDS.some(l => String(l.id) === g("m_land")) ? +g("m_land") : 0, waqf: g("m_waqf").slice(0, 600),
     assets, needs: g("m_needs").slice(0, 400), goal, raised, phone: ph, photo: FORM.photo || "", createdAt: m ? m.createdAt : now, updatedAt: now };
   const btn = document.getElementById("m_save");
   FORM.busy = true; btn.disabled = true; btn.textContent = "جارٍ الحفظ…"; formErr("");
@@ -895,7 +859,7 @@ async function initCollab() {
 }
 function refreshMosques() {
   const pg = location.hash.slice(1) || "home";
-  if ((pg === "mosques" || pg === "home") && !S.form && !FORM.busy && typeof render === "function") render(false);
+  if ((pg === "mosques" || pg === "home" || pg === "land") && !S.form && !FORM.busy && typeof render === "function") render(false);
 }
 
 /* ============ صورة توضيحية من الأعلى ============ */
@@ -991,7 +955,7 @@ function locModal(l) {
 
 /* ============ التوجيه والأحداث ============ */
 const view = document.getElementById("view");
-const PAGES = { home: pHome, housing: pHousing, land: pLand, mosques: pMosques, calc: pCalc, favs: pFavs };
+const PAGES = { home: pHome, housing: pHousing, land: pLand, mosques: pMosques, favs: pFavs };
 const reduce = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
 let PENDING = null;
 
@@ -1043,7 +1007,6 @@ function render(anim) {
   if (anim) view.querySelectorAll(".head,.hero,.entry,.item,.card,.chips").forEach((el, i) => el.style.setProperty("--i", Math.min(i, 14)));
   runCounts();
   updateFavBadge();
-  if (page === "calc") requestAnimationFrame(() => requestAnimationFrame(updateRing));
   document.body.style.overflow = S.loc ? "hidden" : "";
   const sc = document.querySelector(".lb-scroll");
   if (sc && S.zoom === 2) { sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) / 2; sc.scrollTop = (sc.scrollHeight - sc.clientHeight) / 2; }
@@ -1083,7 +1046,6 @@ view.addEventListener("click", e => {
     case "chip": S.filter = t.dataset.t; break;
     case "mosque": S.mosque = t.dataset.id; anim = true; toTop(); break;
     case "back-mosque": S.mosque = null; anim = true; break;
-    case "calc-land": S.calc.price = LANDS.find(l => l.id === +t.dataset.id).price; break;
     case "m-add": if (!canAdd()) return; S.form = { id: null }; FORM = { photo: "", busy: false }; S.mosque = null; anim = true; toTop(); break;
     case "m-edit": { const mm = getMosque(t.dataset.id); if (!canEditM(mm)) return; S.form = { id: mm.id }; FORM = { photo: mm.photo || "", busy: false }; anim = true; toTop(); break; }
     case "m-cancel": if (FORM.busy) return; S.form = null; anim = true; break;
@@ -1105,13 +1067,7 @@ view.addEventListener("click", e => {
 });
 view.addEventListener("input", e => {
   const t = e.target;
-  if (t.id === "q") { renderResults(t.value); return; }
-  const k = t.dataset && t.dataset.calc;
-  if (!k) return;
-  let v = parseFloat(t.value); if (!(v >= 0)) v = 0;
-  S.calc[k] = v;
-  const lab = view.querySelector('[data-lab="' + k + '"]'); if (lab) lab.textContent = v;
-  updateCalc();
+  if (t.id === "q") renderResults(t.value);
 });
 view.addEventListener("change", async e => {
   if (e.target.id !== "m_photo") return;
